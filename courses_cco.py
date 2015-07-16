@@ -1,5 +1,8 @@
 # coding: utf-8
 
+import json
+from pprint import pprint
+
 courses = {
 	# Código : [Nome, H/A, Aulas, Pré-Requisitos]
 
@@ -74,3 +77,55 @@ def get_classes_week(code):
 
 def get_dependencies(code):
 	return courses[code][3]
+
+def get_schedule(code):
+	schedule_aux = courses[code][4]
+	schedule = []
+	for item in schedule_aux:
+		class_day = []
+		for i in range(len(item)):
+			aux = item[i].encode('utf8')[:8:]
+			day = aux[0]
+			start_hour = int(aux[2:4])
+			start_min = int(aux[4:6])
+			hours = int(aux[7])
+
+			offset = 50*hours
+			plus_hours = int(offset/60)
+			plus_min = offset % 60
+
+			end_hour = start_hour + plus_hours
+			end_min = (start_min + plus_min) % 60
+			if(start_min + plus_min >= 60):
+				end_hour += 1
+
+			if(end_hour > 16):
+				end_min = (end_min + 20) % 60
+				if int((end_min+20)/60) % 60 == 0:
+					end_hour += 1
+
+			start = str(start_hour) + str(start_min).zfill(2)
+			end = str(end_hour) + str(end_min).zfill(2)
+
+			class_day.append((day, start, end))
+		schedule.append(class_day)
+	return schedule
+
+def update_classes(semester, campus):
+	filename = "db/"+semester+"_"+campus+".json"
+	f = open(filename, 'r')
+	data = json.load(f)
+	# pega todas as materias do campus
+	for course in data[campus]:
+		# itera sobre todas as materias de cco
+		code = course[0].encode('utf8')
+		try:
+			cco_course = courses[code]
+		except:
+			continue
+		schedule = []
+		for option in course[3]:
+			schedule.append(option[7])
+		courses[code].append(schedule)
+
+update_classes('20152', 'FLO')
